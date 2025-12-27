@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Story Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .story-text {
+            white-space: pre-wrap;
+            line-height: 1.8;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-900 text-white">
+    <div class="min-h-screen">
+        <!-- Main App -->
+        <div class="p-6 max-w-xl mx-auto">
+            <header class="mb-6">
+                <h1 class="text-3xl font-bold text-purple-400 mb-1">Story Builder</h1>
+                <p class="text-gray-400 text-sm">Create magical bedtime stories together</p>
+            </header>
+
+            <!-- Prompt Input -->
+            <div class="bg-gray-800 rounded-xl p-4 mb-4">
+                <label for="prompt" class="block text-sm font-medium text-gray-400 mb-2">
+                    What should the story be about?
+                </label>
+                <textarea
+                    id="prompt"
+                    rows="2"
+                    class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:border-purple-500 focus:outline-none text-white"
+                    placeholder="Enter your story idea..."
+                >a brave bunny who finds a lost star</textarea>
+                <div class="flex gap-2 mt-3">
+                    <div class="w-32">
+                        <label class="block text-xs text-gray-400 mb-1">Story Language</label>
+                        <select id="languageSelect" class="w-full h-[42px] px-3 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm">
+                            <option value="en">English</option>
+                            <option value="hi">Hindi</option>
+                        </select>
+                    </div>
+                    <div class="flex-1 flex items-end">
+                        <button
+                            id="createBtn"
+                            onclick="generateStory()"
+                            class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
+                        >
+                            Create Story
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div id="loading" class="hidden text-center py-4">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-purple-500 border-t-transparent"></div>
+                <p id="loadingText" class="mt-2 text-purple-400 text-sm">Creating your story...</p>
+            </div>
+
+            <!-- Story Display -->
+            <div id="storyContainer" class="hidden bg-gray-800 rounded-xl p-4 mb-4">
+                <h2 class="text-lg font-bold text-purple-400 mb-3">Your Story</h2>
+                <div id="storyText" class="story-text text-gray-300 text-sm mb-4"></div>
+
+                <!-- Voice Selection -->
+                <div class="mb-4">
+                    <div class="flex gap-2 mb-2">
+                        <div class="flex-1">
+                            <label class="block text-xs text-gray-400 mb-1">Narrator Voice</label>
+                            <select id="voiceSelect" class="w-full h-[42px] px-3 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm">
+                            <option value="Rachel">Rachel (default)</option>
+                            <option value="Aria">Aria</option>
+                            <option value="Roger">Roger</option>
+                            <option value="Sarah">Sarah</option>
+                            <option value="Laura">Laura</option>
+                            <option value="Charlie">Charlie</option>
+                            <option value="George">George</option>
+                            <option value="Callum">Callum</option>
+                            <option value="River">River</option>
+                            <option value="Liam">Liam</option>
+                            <option value="Charlotte">Charlotte</option>
+                            <option value="Alice">Alice</option>
+                            <option value="Matilda">Matilda</option>
+                            <option value="Will">Will</option>
+                            <option value="Jessica">Jessica</option>
+                            <option value="Eric">Eric</option>
+                            <option value="Chris">Chris</option>
+                            <option value="Brian">Brian</option>
+                            <option value="Daniel">Daniel</option>
+                            <option value="Lily">Lily</option>
+                            <option value="Bill">Bill</option>
+                            </select>
+                        </div>
+                        <button
+                            onclick="previewVoice()"
+                            class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white font-bold rounded-lg transition-colors text-sm self-end"
+                        >
+                            ▶ Preview
+                        </button>
+                    </div>
+                    <audio id="voicePreview" class="hidden"></audio>
+                </div>
+
+                <div class="flex gap-2">
+                    <button
+                        id="regenerateBtn"
+                        onclick="generateStory()"
+                        class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:bg-gray-800 disabled:cursor-not-allowed"
+                    >
+                        Regenerate
+                    </button>
+                    <button
+                        id="narrateBtn"
+                        onclick="submitAudioJob()"
+                        class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
+                    >
+                        Read Aloud
+                    </button>
+                </div>
+            </div>
+
+            <!-- Audio Player (Narration) -->
+            <div id="audioContainer" class="hidden bg-gray-800 rounded-xl p-4 mb-4">
+                <h2 class="text-sm font-bold text-purple-400 mb-3">Narration</h2>
+                <audio id="audioPlayer" controls class="w-full mb-2">
+                    Your browser does not support audio playback.
+                </audio>
+                <button
+                    onclick="downloadAudio('narration')"
+                    class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm"
+                >
+                    Download Narration MP3
+                </button>
+            </div>
+
+            <!-- Background Music Controls -->
+            <div id="musicContainer" class="hidden bg-gray-800 rounded-xl p-4 mb-4">
+                <h2 class="text-sm font-bold text-blue-400 mb-3">Background Music</h2>
+
+                <div class="mb-3">
+                    <label class="block text-xs text-gray-400 mb-1">Suggested Music Prompt</label>
+                    <textarea
+                        id="musicPrompt"
+                        rows="2"
+                        class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm"
+                        placeholder="Loading suggestion..."
+                    ></textarea>
+                </div>
+
+                <div class="flex gap-2 mb-3">
+                    <div class="flex-1">
+                        <label class="block text-xs text-gray-400 mb-1">Duration</label>
+                        <select id="musicDuration" class="w-full h-[42px] px-3 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm">
+                            <option value="10" selected>10 seconds</option>
+                            <option value="15">15 seconds</option>
+                            <option value="30">30 seconds</option>
+                            <option value="60">60 seconds</option>
+                        </select>
+                    </div>
+                    <div class="flex-1 flex items-end">
+                        <button
+                            id="generateMusicBtn"
+                            onclick="submitMusicJob()"
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:bg-gray-600"
+                        >
+                            Generate Music
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Music Player -->
+                <div id="musicPlayerContainer" class="hidden mt-3">
+                    <audio id="musicPlayer" controls class="w-full mb-2">
+                        Your browser does not support audio playback.
+                    </audio>
+                    <button
+                        onclick="downloadAudio('music')"
+                        class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm"
+                    >
+                        Download Music MP3
+                    </button>
+                </div>
+            </div>
+
+            <!-- Play All Section -->
+            <div id="playAllContainer" class="hidden bg-gradient-to-r from-purple-900 to-blue-900 rounded-xl p-4 mb-4">
+                <h2 class="text-sm font-bold text-white mb-3">Play Full Story</h2>
+                <button
+                    id="playAllBtn"
+                    onclick="playAll()"
+                    class="w-full bg-white text-purple-700 font-bold py-3 px-4 rounded-lg hover:bg-gray-100 transition-colors text-lg"
+                >
+                    ▶ Play All (Music → Narration)
+                </button>
+                <p id="playAllStatus" class="text-center text-gray-300 text-xs mt-2"></p>
+            </div>
+
+            <!-- Error Display -->
+            <div id="errorContainer" class="hidden bg-red-900/50 border border-red-500 rounded-xl p-4 mb-4">
+                <p id="errorText" class="text-red-400 text-sm"></p>
+            </div>
+        </div>
+
+    </div>
+
+    {% if debug_mode %}
+    <!-- Debug Toggle Button -->
+    <button id="debugToggle" onclick="toggleDebugPanel()"
+        class="fixed right-0 top-1/2 -translate-y-1/2 z-20 bg-amber-600 hover:bg-amber-500 text-white px-1 py-3 rounded-l-lg transition-all duration-300 flex flex-col items-center gap-1 text-xs font-bold">
+        <span class="[writing-mode:vertical-lr] rotate-180">DEBUG</span>
+        <span>◀</span>
+    </button>
+
+    <!-- Debug Panel - Fixed overlay, starts hidden -->
+    <div id="debugPanel"
+        class="fixed right-0 top-0 h-full w-[500px] bg-gray-950 border-l border-gray-800 flex flex-col z-10 transition-transform duration-300 translate-x-full">
+        <div class="flex justify-between items-center p-4 border-b border-gray-800">
+            <h3 class="font-bold text-gray-300">Log Console</h3>
+            <button
+                onclick="clearLogs()"
+                class="px-3 py-1 bg-gray-800 hover:bg-gray-700 rounded text-sm text-gray-400"
+            >
+                Clear
+            </button>
+        </div>
+        <div id="logContainer" class="flex-1 p-4 font-mono text-xs overflow-y-auto">
+        </div>
+    </div>
+    {% endif %}
+
+    <script>
+        let currentStory = '';
+        let narrationUrl = '';
+        let musicUrl = '';
+        let debugPanelVisible = false;
+
+        function toggleDebugPanel() {
+            const panel = document.getElementById('debugPanel');
+            const toggle = document.getElementById('debugToggle');
+            if (!panel || !toggle) return;
+
+            debugPanelVisible = !debugPanelVisible;
+            const arrow = toggle.querySelector('span:last-child');
+
+            if (debugPanelVisible) {
+                panel.classList.remove('translate-x-full');
+                toggle.style.right = '500px';
+                if (arrow) arrow.innerHTML = '▶';
+            } else {
+                panel.classList.add('translate-x-full');
+                toggle.style.right = '0';
+                if (arrow) arrow.innerHTML = '◀';
+            }
+        }
+
+        function log(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            if (!logContainer) return;
+
+            const colors = { error: 'text-red-400', warn: 'text-yellow-400', request: 'text-blue-400', response: 'text-purple-400' };
+            const color = colors[type] || 'text-green-400';
+            const timestamp = new Date().toLocaleTimeString();
+            const line = document.createElement('div');
+            line.className = 'mb-2';
+            line.innerHTML = `<span class="text-gray-500">[${timestamp}]</span> <span class="${color}">${message}</span>`;
+            logContainer.appendChild(line);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function logJson(label, data) {
+            const formatted = JSON.stringify(data, null, 2);
+            log(`${label}: ${formatted}`, 'response');
+        }
+
+        function clearLogs() {
+            document.getElementById('logContainer').innerHTML = '';
+            log('Log cleared', 'info');
+        }
+
+        function showLoading(message) {
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('loadingText').textContent = message;
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').classList.add('hidden');
+        }
+
+        function showError(message) {
+            const errorContainer = document.getElementById('errorContainer');
+            document.getElementById('errorText').textContent = message;
+            errorContainer.classList.remove('hidden');
+            log(`ERROR: ${message}`, 'error');
+            setTimeout(() => errorContainer.classList.add('hidden'), 10000);
+        }
+
+        function setButtonsDisabled(disabled) {
+            document.getElementById('createBtn').disabled = disabled;
+            const regenerateBtn = document.getElementById('regenerateBtn');
+            const narrateBtn = document.getElementById('narrateBtn');
+            if (regenerateBtn) regenerateBtn.disabled = disabled;
+            if (narrateBtn) narrateBtn.disabled = disabled;
+        }
+
+        async function generateStory() {
+            const prompt = document.getElementById('prompt').value.trim();
+            const language = document.getElementById('languageSelect').value;
+            if (!prompt) {
+                showError('Please enter a story idea!');
+                return;
+            }
+
+            setButtonsDisabled(true);
+            showLoading(language === 'hi' ? 'Creating your Hindi story...' : 'Creating your story...');
+            log(`POST /generate-story`, 'request');
+            log(`Prompt: "${prompt}", Language: ${language}`, 'info');
+            document.getElementById('storyContainer').classList.add('hidden');
+            document.getElementById('audioContainer').classList.add('hidden');
+
+            try {
+                const response = await fetch('/generate-story', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt, language })
+                });
+
+                log(`Status: ${response.status}`, 'info');
+                const data = await response.json();
+
+                if (data.error) {
+                    logJson('Error Response', data);
+                    showError(data.error);
+                } else {
+                    log(`Story generated (${data.story.length} chars)`, 'response');
+                    currentStory = data.story;
+                    document.getElementById('storyText').textContent = currentStory;
+                    document.getElementById('storyContainer').classList.remove('hidden');
+                    document.getElementById('musicContainer').classList.remove('hidden');
+
+                    // Auto-fetch music prompt suggestion
+                    fetchMusicPrompt();
+                }
+            } catch (err) {
+                log(`Fetch error: ${err.message}`, 'error');
+                showError(`Failed to generate story: ${err.message}`);
+            } finally {
+                hideLoading();
+                setButtonsDisabled(false);
+            }
+        }
+
+        function previewVoice() {
+            const voice = document.getElementById('voiceSelect').value.toLowerCase();
+            const language = document.getElementById('languageSelect').value;
+            const preview = document.getElementById('voicePreview');
+            const filename = language === 'en' ? `${voice}.mp3` : `${voice}_${language}.mp3`;
+            preview.src = `/static/voice-samples/${filename}`;
+            preview.play();
+            log(`Playing preview for voice: ${voice} (${language})`, 'info');
+        }
+
+        async function submitAudioJob() {
+            if (!currentStory) {
+                showError('No story to narrate!');
+                return;
+            }
+
+            const voice = document.getElementById('voiceSelect').value;
+            const language = document.getElementById('languageSelect').value;
+            const narrateBtn = document.getElementById('narrateBtn');
+
+            // Disable button and show loading state
+            narrateBtn.disabled = true;
+            narrateBtn.textContent = 'Generating...';
+
+            log(`POST /generate-audio`, 'request');
+            log(`Input: {"text":"${currentStory.substring(0, 50)}...","voice":"${voice}","language":"${language}"}`, 'info');
+
+            try {
+                const response = await fetch('/generate-audio', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: currentStory, voice: voice, language: language })
+                });
+
+                log(`Status: ${response.status}`, 'info');
+                const data = await response.json();
+                logJson('Response', data);
+
+                if (data.error) {
+                    showError(data.error);
+                    narrateBtn.disabled = false;
+                    narrateBtn.textContent = 'Read Aloud';
+                } else {
+                    log(`Request ID: ${data.request_id}`, 'info');
+                    await pollAudioUntilComplete(data.request_id, narrateBtn);
+                }
+            } catch (err) {
+                log(`Fetch error: ${err.message}`, 'error');
+                showError(`Failed to submit job: ${err.message}`);
+                narrateBtn.disabled = false;
+                narrateBtn.textContent = 'Read Aloud';
+            }
+        }
+
+        async function pollAudioUntilComplete(requestId, btn) {
+            let attempts = 0;
+            const maxAttempts = 60;
+
+            while (attempts < maxAttempts) {
+                attempts++;
+                btn.textContent = `Generating... (${attempts})`;
+                log(`GET /audio-status/${requestId} (attempt ${attempts})`, 'request');
+
+                try {
+                    const response = await fetch(`/audio-status/${requestId}`);
+                    const data = await response.json();
+                    log(`Status: ${data.status}`, 'response');
+
+                    if (data.status === 'COMPLETED') {
+                        log('Audio complete! Fetching result...', 'info');
+                        await fetchAudioResult(requestId);
+                        btn.disabled = false;
+                        btn.textContent = 'Read Aloud';
+                        return;
+                    }
+
+                    if (data.status === 'FAILED') {
+                        log('Audio generation failed!', 'error');
+                        showError('Audio generation failed');
+                        btn.disabled = false;
+                        btn.textContent = 'Read Aloud';
+                        return;
+                    }
+
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                } catch (err) {
+                    log(`Poll error: ${err.message}`, 'error');
+                    btn.disabled = false;
+                    btn.textContent = 'Read Aloud';
+                    return;
+                }
+            }
+
+            log('Audio polling timed out', 'warn');
+            showError('Audio generation timed out');
+            btn.disabled = false;
+            btn.textContent = 'Read Aloud';
+        }
+
+        async function fetchAudioResult(requestId) {
+            log(`GET /audio-result/${requestId}`, 'request');
+
+            try {
+                const response = await fetch(`/audio-result/${requestId}`);
+                const data = await response.json();
+                logJson('Response', data);
+
+                if (data.audio_url) {
+                    narrationUrl = data.audio_url;
+                    const audioPlayer = document.getElementById('audioPlayer');
+                    audioPlayer.src = data.audio_url;
+                    document.getElementById('audioContainer').classList.remove('hidden');
+                    log(`Audio ready: ${data.audio_url}`, 'info');
+                    updatePlayAllButton();
+                }
+            } catch (err) {
+                log(`Result error: ${err.message}`, 'error');
+            }
+        }
+
+        // ============= MUSIC FUNCTIONS =============
+
+        async function fetchMusicPrompt() {
+            log('POST /generate-music-prompt', 'request');
+            document.getElementById('musicPrompt').value = 'Generating suggestion...';
+
+            try {
+                const response = await fetch('/generate-music-prompt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ story: currentStory })
+                });
+
+                const data = await response.json();
+                log(`Music prompt response: ${JSON.stringify(data)}`, 'response');
+
+                if (data.prompt) {
+                    document.getElementById('musicPrompt').value = data.prompt;
+                } else {
+                    document.getElementById('musicPrompt').value = 'gentle lullaby with soft piano, peaceful bedtime melody';
+                }
+            } catch (err) {
+                log(`Music prompt error: ${err.message}`, 'error');
+                document.getElementById('musicPrompt').value = 'gentle lullaby with soft piano, peaceful bedtime melody';
+            }
+        }
+
+        async function submitMusicJob() {
+            const prompt = document.getElementById('musicPrompt').value.trim();
+            const duration = parseInt(document.getElementById('musicDuration').value);
+            const musicBtn = document.getElementById('generateMusicBtn');
+
+            if (!prompt) {
+                showError('Please enter a music prompt');
+                return;
+            }
+
+            // Disable button and show loading state
+            musicBtn.disabled = true;
+            musicBtn.textContent = 'Generating...';
+
+            log('POST /generate-sound', 'request');
+            log(`Prompt: "${prompt}", Duration: ${duration}s`, 'info');
+
+            try {
+                const response = await fetch('/generate-sound', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt, duration })
+                });
+
+                const data = await response.json();
+                logJson('Response', data);
+
+                if (data.error) {
+                    showError(data.error);
+                    musicBtn.disabled = false;
+                    musicBtn.textContent = 'Generate Music';
+                } else {
+                    log(`Music Request ID: ${data.request_id}`, 'info');
+                    await pollMusicUntilComplete(data.request_id, musicBtn);
+                }
+            } catch (err) {
+                log(`Music job error: ${err.message}`, 'error');
+                showError(`Failed to submit music job: ${err.message}`);
+                musicBtn.disabled = false;
+                musicBtn.textContent = 'Generate Music';
+            }
+        }
+
+        async function pollMusicUntilComplete(requestId, btn) {
+            let attempts = 0;
+            const maxAttempts = 90; // Music can take longer
+
+            while (attempts < maxAttempts) {
+                attempts++;
+                btn.textContent = `Generating... (${attempts})`;
+                log(`GET /audio-status/${requestId} (attempt ${attempts})`, 'request');
+
+                try {
+                    const response = await fetch(`/audio-status/${requestId}`);
+                    const data = await response.json();
+                    log(`Status: ${data.status}`, 'response');
+
+                    if (data.status === 'COMPLETED') {
+                        log('Music complete! Fetching result...', 'info');
+                        await fetchMusicResult(requestId);
+                        btn.disabled = false;
+                        btn.textContent = 'Generate Music';
+                        return;
+                    }
+
+                    if (data.status === 'FAILED') {
+                        log('Music generation failed!', 'error');
+                        showError('Music generation failed');
+                        btn.disabled = false;
+                        btn.textContent = 'Generate Music';
+                        return;
+                    }
+
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                } catch (err) {
+                    log(`Poll error: ${err.message}`, 'error');
+                    btn.disabled = false;
+                    btn.textContent = 'Generate Music';
+                    return;
+                }
+            }
+
+            log('Music polling timed out', 'warn');
+            showError('Music generation timed out');
+            btn.disabled = false;
+            btn.textContent = 'Generate Music';
+        }
+
+        async function fetchMusicResult(requestId) {
+            log(`GET /audio-result/${requestId}`, 'request');
+
+            try {
+                const response = await fetch(`/audio-result/${requestId}`);
+                const data = await response.json();
+                logJson('Music Result', data);
+
+                if (data.audio_url) {
+                    musicUrl = data.audio_url;
+                    const musicPlayer = document.getElementById('musicPlayer');
+                    musicPlayer.src = data.audio_url;
+                    document.getElementById('musicPlayerContainer').classList.remove('hidden');
+                    log(`Music ready: ${data.audio_url}`, 'info');
+                    updatePlayAllButton();
+                }
+            } catch (err) {
+                log(`Result error: ${err.message}`, 'error');
+            }
+        }
+
+        function updatePlayAllButton() {
+            if (narrationUrl) {
+                document.getElementById('playAllContainer').classList.remove('hidden');
+            }
+        }
+
+        async function playAll() {
+            const statusEl = document.getElementById('playAllStatus');
+            const audioPlayer = document.getElementById('audioPlayer');
+            const musicPlayer = document.getElementById('musicPlayer');
+
+            if (musicUrl) {
+                // Play music first, then narration
+                statusEl.textContent = 'Playing intro music...';
+                log('Playing intro music...', 'info');
+
+                musicPlayer.currentTime = 0;
+                await musicPlayer.play();
+
+                // Wait for music to finish
+                await new Promise(resolve => {
+                    musicPlayer.onended = resolve;
+                });
+
+                statusEl.textContent = 'Playing narration...';
+                log('Playing narration...', 'info');
+
+                audioPlayer.currentTime = 0;
+                await audioPlayer.play();
+
+                audioPlayer.onended = () => {
+                    statusEl.textContent = 'Story complete!';
+                    log('Playback complete', 'info');
+                };
+            } else if (narrationUrl) {
+                // Just play narration
+                statusEl.textContent = 'Playing narration...';
+                audioPlayer.currentTime = 0;
+                await audioPlayer.play();
+
+                audioPlayer.onended = () => {
+                    statusEl.textContent = 'Story complete!';
+                };
+            } else {
+                showError('No audio to play');
+            }
+        }
+
+        async function downloadAudio(type) {
+            const url = type === 'narration' ? narrationUrl : musicUrl;
+            if (!url) {
+                showError(`No ${type} audio to download`);
+                return;
+            }
+
+            log(`Downloading ${type} audio...`, 'info');
+
+            try {
+                const response = await fetch(url);
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = `story-${type}-${Date.now()}.mp3`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(downloadUrl);
+                log(`${type} downloaded successfully`, 'info');
+            } catch (err) {
+                log(`Download error: ${err.message}`, 'error');
+                showError(`Failed to download: ${err.message}`);
+            }
+        }
+
+        // Allow Enter key to submit
+        document.getElementById('prompt').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                generateStory();
+            }
+        });
+
+        log('Story Builder initialized', 'info');
+        log('Ready', 'info');
+    </script>
+</body>
+</html>
